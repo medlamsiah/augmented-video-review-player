@@ -11,10 +11,11 @@ type ExportJsonButtonProps = {
   annotations: ReviewAnnotation[];
   comments: ReviewComment[];
   transcription?: VideoTranscription | null;
+  label: string;
   onExported: () => void;
 };
 
-export function ExportJsonButton({ annotations, comments, transcription, onExported }: ExportJsonButtonProps) {
+export function ExportJsonButton({ annotations, comments, transcription, label, onExported }: ExportJsonButtonProps) {
   const [open, setOpen] = useState(false);
   const payload = useMemo(
     () => ({
@@ -37,7 +38,7 @@ export function ExportJsonButton({ annotations, comments, transcription, onExpor
   return (
     <>
       <Button variant="primary" icon={<Download size={16} />} onClick={() => setOpen(true)}>
-        Export JSON
+        {label}
       </Button>
       <ExportPreviewModal open={open} payload={payload} onClose={() => setOpen(false)} onDownload={download} />
     </>

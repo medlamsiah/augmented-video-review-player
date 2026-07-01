@@ -21,9 +21,11 @@ type AnnotationToolbarProps = {
   onColorChange: (color: string) => void;
   onThicknessChange: (thickness: number) => void;
   onClear: () => void;
+  clearLabel: string;
+  colorLabel: string;
 };
 
-export function AnnotationToolbar({ activeTool, color, thickness, onToolChange, onColorChange, onThicknessChange, onClear }: AnnotationToolbarProps) {
+export function AnnotationToolbar({ activeTool, color, thickness, onToolChange, onColorChange, onThicknessChange, onClear, clearLabel, colorLabel }: AnnotationToolbarProps) {
   return (
     <div className="annotation-toolbar">
       <div className="tool-group">
@@ -48,7 +50,7 @@ export function AnnotationToolbar({ activeTool, color, thickness, onToolChange, 
             style={{ backgroundColor: option }}
             onClick={() => onColorChange(option)}
             title={option}
-            aria-label={`Couleur ${option}`}
+            aria-label={`${colorLabel} ${option}`}
           />
         ))}
       </div>
@@ -59,7 +61,7 @@ export function AnnotationToolbar({ activeTool, color, thickness, onToolChange, 
       </label>
 
       <Button variant="danger" icon={<Eraser size={16} />} onClick={onClear}>
-        Clear
+        {clearLabel}
       </Button>
     </div>
   );

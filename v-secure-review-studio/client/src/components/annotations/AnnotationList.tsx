@@ -6,11 +6,15 @@ import { EmptyState } from "../ui/EmptyState";
 type AnnotationListProps = {
   annotations: ReviewAnnotation[];
   onSeek: (time: number) => void;
+  labels: {
+    emptyTitle: string;
+    emptyBody: string;
+  };
 };
 
-export function AnnotationList({ annotations, onSeek }: AnnotationListProps) {
+export function AnnotationList({ annotations, onSeek, labels }: AnnotationListProps) {
   if (!annotations.length) {
-    return <EmptyState icon={<LocateFixed size={22} />} title="Aucune annotation" body="Dessinez sur la video pour creer un retour visuel horodate." />;
+    return <EmptyState icon={<LocateFixed size={22} />} title={labels.emptyTitle} body={labels.emptyBody} />;
   }
 
   return (

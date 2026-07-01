@@ -1,12 +1,17 @@
-import { Building2, Clapperboard, LockKeyhole, RadioTower, Sparkles } from "lucide-react";
-import { Badge } from "../ui/Badge";
+import { Building2, Clapperboard, LockKeyhole, RadioTower } from "lucide-react";
 
 type SidebarProps = {
   userName: string;
   userRole: string;
+  labels: {
+    reviewRoom: string;
+    secureVideo: string;
+    liveSync: string;
+    workspace: string;
+  };
 };
 
-export function Sidebar({ userName, userRole }: SidebarProps) {
+export function Sidebar({ userName, userRole, labels }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="brand-block">
@@ -22,28 +27,21 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
       <nav className="sidebar-nav">
         <a className="is-active" href="#review">
           <Clapperboard size={17} />
-          Review room
+          {labels.reviewRoom}
         </a>
         <a href="#secure">
           <LockKeyhole size={17} />
-          Secure video
+          {labels.secureVideo}
         </a>
         <a href="#live">
           <RadioTower size={17} />
-          Live sync
+          {labels.liveSync}
         </a>
         <a href="#company">
           <Building2 size={17} />
-          Workspace
+          {labels.workspace}
         </a>
       </nav>
-
-      <div className="sidebar-card">
-        <Sparkles size={18} />
-        <strong>Soutenance mode</strong>
-        <p>Canvas, commentaires, timeline et export sont prets pour une demo multi-onglets.</p>
-        <Badge tone="violet">Premium SaaS</Badge>
-      </div>
 
       <div className="user-card">
         <span>{userName.slice(0, 1)}</span>

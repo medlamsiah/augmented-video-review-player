@@ -11,11 +11,19 @@ type CommentsPanelProps = {
   comments: ReviewComment[];
   currentTime: number;
   author: string;
+  labels: {
+    eyebrow: string;
+    title: string;
+    placeholder: string;
+    submit: string;
+    emptyTitle: string;
+    emptyBody: string;
+  };
   onAddComment: (body: string) => void;
   onSeek: (time: number) => void;
 };
 
-export function CommentsPanel({ comments, currentTime, onAddComment, onSeek }: CommentsPanelProps) {
+export function CommentsPanel({ comments, currentTime, labels, onAddComment, onSeek }: CommentsPanelProps) {
   const [body, setBody] = useState("");
 
   function submit(event: FormEvent) {
@@ -32,8 +40,8 @@ export function CommentsPanel({ comments, currentTime, onAddComment, onSeek }: C
     <aside className="comments-panel">
       <div className="panel-header">
         <div>
-          <span>Review notes</span>
-          <strong>Commentaires</strong>
+          <span>{labels.eyebrow}</span>
+          <strong>{labels.title}</strong>
         </div>
         <span className="time-pill">{formatTime(currentTime)}</span>
       </div>
@@ -42,11 +50,11 @@ export function CommentsPanel({ comments, currentTime, onAddComment, onSeek }: C
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
-          placeholder="Ajouter un commentaire horodate..."
+          placeholder={labels.placeholder}
           rows={4}
         />
         <Button variant="primary" icon={<SendHorizonal size={16} />} type="submit">
-          Ajouter
+          {labels.submit}
         </Button>
       </form>
 
@@ -54,7 +62,7 @@ export function CommentsPanel({ comments, currentTime, onAddComment, onSeek }: C
         {comments.length ? (
           comments.map((comment) => <CommentCard key={comment.id} comment={comment} onSeek={onSeek} />)
         ) : (
-          <EmptyState icon={<SendHorizonal size={22} />} title="Aucun commentaire" body="Ajoutez une note, elle sera synchronisee dans les autres onglets." />
+          <EmptyState icon={<SendHorizonal size={22} />} title={labels.emptyTitle} body={labels.emptyBody} />
         )}
       </div>
     </aside>

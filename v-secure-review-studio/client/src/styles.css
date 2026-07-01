@@ -91,7 +91,6 @@ button {
 }
 
 .brand-block span,
-.sidebar-card p,
 .user-card small,
 .section-heading span,
 .panel-header span,
@@ -123,7 +122,6 @@ button {
   background: rgba(148, 163, 184, 0.12);
 }
 
-.sidebar-card,
 .glass-card,
 .timeline-card,
 .comments-panel,
@@ -135,19 +133,8 @@ button {
   backdrop-filter: blur(22px);
 }
 
-.sidebar-card {
-  margin-top: auto;
-  padding: 16px;
-  border-radius: 18px;
-}
-
-.sidebar-card p {
-  margin: 8px 0 14px;
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
 .user-card {
+  margin-top: auto;
   gap: 12px;
   padding: 12px;
   border-radius: 16px;
@@ -197,6 +184,31 @@ button {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.language-toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.language-toggle button {
+  min-width: 38px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  color: #cbd5e1;
+  background: transparent;
+  font-weight: 850;
+}
+
+.language-toggle button.is-active {
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #34d399);
 }
 
 .studio-grid {

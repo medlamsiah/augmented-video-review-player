@@ -26,6 +26,104 @@ import { Toast } from "./components/ui/Toast";
 
 const REVIEW_SESSION_ID = "default-review-session";
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/vsecure-api" : "http://localhost:4500");
+type Language = "fr" | "en";
+
+const copy = {
+  fr: {
+    sidebar: {
+      reviewRoom: "Salle de revue",
+      secureVideo: "Video securisee",
+      liveSync: "Synchro live",
+      workspace: "Espace equipe"
+    },
+    topbar: {
+      eyebrow: "Revue video entreprise",
+      secureWorkspace: "Espace securise",
+      liveCollaboration: "Collaboration live",
+      offline: "Hors ligne",
+      connected: "connectes"
+    },
+    comments: {
+      eyebrow: "Notes de revue",
+      title: "Commentaires",
+      placeholder: "Ajouter un commentaire horodate...",
+      submit: "Ajouter",
+      emptyTitle: "Aucun commentaire",
+      emptyBody: "Ajoutez une note, elle sera synchronisee dans les autres onglets."
+    },
+    stats: {
+      duration: "Duree",
+      annotations: "Annotations",
+      comments: "Commentaires"
+    },
+    annotations: {
+      clear: "Effacer",
+      color: "Couleur",
+      visible: "Visible autour du timestamp",
+      recent: "Annotations recentes",
+      emptyTitle: "Aucune annotation",
+      emptyBody: "Dessinez sur la video pour creer un retour visuel horodate."
+    },
+    exportJson: "Exporter JSON",
+    toasts: {
+      sessionCleared: "Session nettoyee",
+      annotationAdded: "Annotation ajoutee",
+      commentSynced: "Commentaire synchronise",
+      sessionReset: "Session remise a zero",
+      jsonExported: "JSON exporte",
+      transcriptionReady: "Transcription generee",
+      signedIn: "est connecte",
+      signedOut: "Session fermee"
+    }
+  },
+  en: {
+    sidebar: {
+      reviewRoom: "Review room",
+      secureVideo: "Secure video",
+      liveSync: "Live sync",
+      workspace: "Workspace"
+    },
+    topbar: {
+      eyebrow: "Enterprise video review",
+      secureWorkspace: "Secure workspace",
+      liveCollaboration: "Live collaboration",
+      offline: "Offline",
+      connected: "connected"
+    },
+    comments: {
+      eyebrow: "Review notes",
+      title: "Comments",
+      placeholder: "Add a timestamped comment...",
+      submit: "Add",
+      emptyTitle: "No comments",
+      emptyBody: "Add a note and it will sync across other tabs."
+    },
+    stats: {
+      duration: "Duration",
+      annotations: "Annotations",
+      comments: "Comments"
+    },
+    annotations: {
+      clear: "Clear",
+      color: "Color",
+      visible: "Visible around timestamp",
+      recent: "Recent annotations",
+      emptyTitle: "No annotations",
+      emptyBody: "Draw on the video to create timestamped visual feedback."
+    },
+    exportJson: "Export JSON",
+    toasts: {
+      sessionCleared: "Session cleared",
+      annotationAdded: "Annotation added",
+      commentSynced: "Comment synced",
+      sessionReset: "Session reset",
+      jsonExported: "JSON exported",
+      transcriptionReady: "Transcription generated",
+      signedIn: "is signed in",
+      signedOut: "Signed out"
+    }
+  }
+} as const;
 
 function mergeById<T extends { id: string }>(remote: T[], pending: T[]) {
   const seen = new Set<string>();
@@ -54,8 +152,10 @@ export default function App() {
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [transcription, setTranscription] = useState<VideoTranscription | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [language, setLanguage] = useState<Language>("fr");
   const pendingAnnotationsRef = useRef<ReviewAnnotation[]>([]);
   const pendingCommentsRef = useRef<ReviewComment[]>([]);
+  const labels = copy[language];
 
   useEffect(() => {
     void fetchMe()
@@ -113,7 +213,7 @@ export default function App() {
     socket.on("session-cleared", () => {
       setAnnotations([]);
       setComments([]);
-      showToast("Session nettoyee");
+      showToast(labels.toasts.sessionCleared);
     });
     socket.on("users-count", setUsersCount);
 
@@ -130,7 +230,7 @@ export default function App() {
       socket.off("session-cleared");
       socket.off("users-count");
     };
-  }, [currentUser]);
+  }, [currentUser, labels.toasts.sessionCleared]);
 
   useEffect(() => {
     let cancelled = false;
@@ -202,7 +302,7 @@ export default function App() {
       socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
     }
     void persistAnnotation(annotation);
-    showToast("Annotation ajoutee");
+    showToast(labels.toasts.annotationAdded);
   }
 
   function addComment(body: string) {
@@ -220,7 +320,7 @@ export default function App() {
       socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
     }
     void persistComment(comment);
-    showToast("Commentaire synchronise");
+    showToast(labels.toasts.commentSynced);
   }
 
   function clearSession() {
@@ -230,7 +330,7 @@ export default function App() {
       setAnnotations([]);
       setComments([]);
     }
-    showToast("Session remise a zero");
+    showToast(labels.toasts.sessionReset);
   }
 
   function seek(time: number) {
@@ -241,25 +341,28 @@ export default function App() {
 
   return (
     <AppShell
-      sidebar={<Sidebar userName={currentUser.name} userRole={currentUser.role} />}
+      sidebar={<Sidebar userName={currentUser.name} userRole={currentUser.role} labels={labels.sidebar} />}
       topbar={
         <TopBar
           connected={connected}
           usersCount={usersCount}
+          language={language}
+          onLanguageChange={setLanguage}
+          labels={labels.topbar}
           actions={
             <Fragment>
               <AuthModal
                 user={currentUser}
                 onAuthenticated={(user) => {
                   setCurrentUser(user);
-                  showToast(`${user.name} est connecte`);
+                  showToast(`${user.name} ${labels.toasts.signedIn}`);
                 }}
                 onLogout={() => {
                   setCurrentUser(fallbackUser);
-                  showToast("Session fermee");
+                  showToast(labels.toasts.signedOut);
                 }}
               />
-              <ExportJsonButton annotations={annotations} comments={comments} transcription={transcription} onExported={() => showToast("JSON exporte")} />
+              <ExportJsonButton annotations={annotations} comments={comments} transcription={transcription} label={labels.exportJson} onExported={() => showToast(labels.toasts.jsonExported)} />
             </Fragment>
           }
         />
@@ -275,6 +378,8 @@ export default function App() {
             onColorChange={setColor}
             onThicknessChange={setThickness}
             onClear={clearSession}
+            clearLabel={labels.annotations.clear}
+            colorLabel={labels.annotations.color}
           />
 
           <div className="player-wrap">
@@ -296,26 +401,26 @@ export default function App() {
           <VideoTimeline currentTime={currentTime} duration={duration} annotations={annotations} comments={comments} onSeek={seek} />
 
           <motion.div className="lower-grid" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <VideoStats duration={duration} annotationsCount={annotations.length} commentsCount={comments.length} />
+            <VideoStats duration={duration} annotationsCount={annotations.length} commentsCount={comments.length} labels={labels.stats} />
             <Card className="annotation-card">
               <div className="section-heading">
-                <span>Visible around timestamp</span>
-                <strong>Annotations recentes</strong>
+                <span>{labels.annotations.visible}</span>
+                <strong>{labels.annotations.recent}</strong>
               </div>
-              <AnnotationList annotations={annotations} onSeek={seek} />
+              <AnnotationList annotations={annotations} onSeek={seek} labels={labels.annotations} />
             </Card>
             <TranscriptionPanel
               currentTime={currentTime}
               onSeek={seek}
               onReady={(generated) => {
                 setTranscription(generated);
-                showToast("Transcription generee");
+                showToast(labels.toasts.transcriptionReady);
               }}
             />
           </motion.div>
         </section>
 
-        <CommentsPanel comments={comments} currentTime={currentTime} author={currentUser.name} onAddComment={addComment} onSeek={seek} />
+        <CommentsPanel comments={comments} currentTime={currentTime} author={currentUser.name} labels={labels.comments} onAddComment={addComment} onSeek={seek} />
       </main>
       <Toast message={toast} />
     </AppShell>
