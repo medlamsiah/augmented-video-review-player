@@ -3,7 +3,17 @@ export function cn(...classes: Array<string | false | null | undefined>) {
 }
 
 export function uid(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`;
+  const browserCrypto = globalThis.crypto as Crypto | undefined;
+  const randomUuid = browserCrypto?.randomUUID?.();
+  if (randomUuid) {
+    return `${prefix}-${randomUuid}`;
+  }
+
+  const randomPart = browserCrypto?.getRandomValues
+    ? Array.from(browserCrypto.getRandomValues(new Uint32Array(2)), (value) => value.toString(36)).join("")
+    : Math.random().toString(36).slice(2);
+
+  return `${prefix}-${Date.now().toString(36)}-${randomPart}`;
 }
 
 export function formatTime(totalSeconds: number) {

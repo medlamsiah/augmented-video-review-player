@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnnotationTool, Point, ReviewAnnotation } from "../../types/annotation";
+import { uid } from "../../lib/utils";
 
 type AnnotationCanvasProps = {
   annotations: ReviewAnnotation[];
@@ -125,7 +126,7 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
     onDrawingStart?.();
     const point = getPoint(event);
     const nextDraft = {
-      id: crypto.randomUUID(),
+      id: uid("annotation"),
       type: activeTool,
       color,
       thickness,
