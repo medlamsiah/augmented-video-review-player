@@ -1,0 +1,29 @@
+services:
+  hls-nginx:
+    image: nginx:1.27-alpine
+    container_name: vsecure-hls-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./output:/usr/share/nginx/html/hls:ro
+    depends_on:
+      - key-server
+
+  key-server:
+    image: node:20-alpine
+    container_name: vsecure-hls-key-server
+    working_dir: /app
+    environment:
+      PORT: "7001"
+      KEY_TOKEN: "demo-secure-token"
+      KEY_FILE: "/app/secrets/demo.key"
+    volumes:
+      - ./key-server:/app
+      - ./secrets:/app/secrets:ro
+    command: sh -c "npm install && npm run dev"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

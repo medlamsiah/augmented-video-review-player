@@ -1,0 +1,5 @@
+V-Secure Review Studio does not bundle a heavy video file.
+
+For a stable hackathon presentation, use the "Load MP4" button in the player and select
+any local internal video sample. The app keeps annotations and comments synchronized
+independently from the video source.

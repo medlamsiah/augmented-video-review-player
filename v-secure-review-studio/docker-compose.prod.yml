@@ -1,0 +1,17 @@
+services:
+  review-studio:
+    build:
+      context: .
+    container_name: v-secure-review-studio
+    restart: unless-stopped
+    environment:
+      PORT: "4500"
+      CLIENT_DIST_DIR: "/app/client/dist"
+      AUTH_USERS_FILE: "/app/server/storage/users.json"
+    ports:
+      - "4500:4500"
+    volumes:
+      - review-studio-users:/app/server/storage
+
+volumes:
+  review-studio-users:

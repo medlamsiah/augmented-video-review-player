@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo
+server/storage/users.json
+secure-streaming/input/*
+secure-streaming/output/*
+secure-streaming/secrets/*
+!secure-streaming/input/.gitkeep
+!secure-streaming/output/.gitkeep
+!secure-streaming/secrets/.gitkeep

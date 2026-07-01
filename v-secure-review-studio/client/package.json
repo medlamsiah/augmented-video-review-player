@@ -1,0 +1,29 @@
+{
+  "name": "v-secure-review-studio-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "framer-motion": "^11.18.2",
+    "hls.js": "^1.6.16",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io-client": "^4.8.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}
