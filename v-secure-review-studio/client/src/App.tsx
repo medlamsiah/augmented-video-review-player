@@ -24,6 +24,8 @@ import { fetchMe, loadStoredAuthUser } from "./lib/auth";
 import { Card } from "./components/ui/Card";
 import { Toast } from "./components/ui/Toast";
 
+const REVIEW_SESSION_ID = "default-review-session";
+
 export default function App() {
   const [fallbackUser] = useState(() => getCurrentUser());
   const [currentUser, setCurrentUser] = useState<AuthUser>(() => loadStoredAuthUser() ?? fallbackUser);
@@ -53,7 +55,14 @@ export default function App() {
   useEffect(() => {
     const join = () => {
       setConnected(true);
-      socket.emit("join-session");
+      socket.emit("join-session", {
+        sessionId: REVIEW_SESSION_ID,
+        user: {
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role
+        }
+      });
     };
 
     socket.on("connect", join);
@@ -88,7 +97,7 @@ export default function App() {
       socket.off("session-cleared");
       socket.off("users-count");
     };
-  }, []);
+  }, [currentUser]);
 
   function showToast(message: string) {
     setToast(message);
@@ -98,7 +107,7 @@ export default function App() {
   function addAnnotation(annotation: ReviewAnnotation) {
     setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     if (connected) {
-      socket.emit("add-annotation", annotation);
+      socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
     }
     showToast("Annotation ajoutee");
   }
@@ -114,14 +123,14 @@ export default function App() {
 
     setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     if (connected) {
-      socket.emit("add-comment", comment);
+      socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
     }
     showToast("Commentaire synchronise");
   }
 
   function clearSession() {
     if (connected) {
-      socket.emit("clear-session");
+      socket.emit("clear-session", { sessionId: REVIEW_SESSION_ID });
     } else {
       setAnnotations([]);
       setComments([]);

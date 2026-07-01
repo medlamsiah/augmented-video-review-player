@@ -296,10 +296,9 @@ button {
 }
 
 .annotation-canvas {
-  inset: 0 0 54px;
-  height: calc(100% - 54px);
   touch-action: none;
-  z-index: 2;
+  pointer-events: auto;
+  z-index: 4;
 }
 
 .video-error-message {

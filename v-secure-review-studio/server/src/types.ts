@@ -29,3 +29,29 @@ export type ReviewSessionState = {
   annotations: ReviewAnnotation[];
   comments: ReviewComment[];
 };
+
+export type ReviewPresenceUser = {
+  id?: string;
+  name: string;
+  email?: string;
+  role?: string;
+};
+
+export type JoinSessionPayload = {
+  sessionId?: string;
+  user?: ReviewPresenceUser;
+};
+
+export type AddAnnotationPayload = {
+  sessionId?: string;
+  annotation: ReviewAnnotation;
+};
+
+export type AddCommentPayload = {
+  sessionId?: string;
+  comment: ReviewComment;
+};
+
+export type ClearSessionPayload = {
+  sessionId?: string;
+};

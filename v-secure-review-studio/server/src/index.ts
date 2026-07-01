@@ -5,11 +5,10 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { Server } from "socket.io";
 import { getUserFromToken, loginUser, logout, registerUser } from "./authStore.js";
-import { addAnnotation, addComment, clearSession, getSessionState } from "./sessionStore.js";
-import type { ReviewAnnotation, ReviewComment } from "./types.js";
+import { DEFAULT_SESSION_ID, addAnnotation, addComment, clearSession, getSessionState } from "./sessionStore.js";
+import type { AddAnnotationPayload, AddCommentPayload, ClearSessionPayload, JoinSessionPayload } from "./types.js";
 
 const PORT = Number(process.env.PORT ?? 4500);
-const SESSION_ID = "secure-demo-video";
 const APP_BASE_PATH = process.env.APP_BASE_PATH ?? "/";
 const SOCKET_PATH = process.env.SOCKET_PATH ?? "/socket.io";
 
@@ -18,11 +17,11 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "v-secure-review-studio-server", session: SESSION_ID });
+  res.json({ ok: true, service: "v-secure-review-studio-server", session: DEFAULT_SESSION_ID });
 });
 
 app.get("/session", (_req, res) => {
-  res.json(getSessionState());
+  res.json(getSessionState(DEFAULT_SESSION_ID));
 });
 
 function bearerToken(req: express.Request) {
@@ -85,34 +84,64 @@ const io = new Server(httpServer, {
   }
 });
 
-function emitUsersCount() {
-  const count = io.sockets.adapter.rooms.get(SESSION_ID)?.size ?? 0;
-  io.to(SESSION_ID).emit("users-count", count);
+function resolveSessionId(sessionId?: string) {
+  return sessionId?.trim() || DEFAULT_SESSION_ID;
+}
+
+function emitUsersCount(sessionId: string) {
+  const count = io.sockets.adapter.rooms.get(sessionId)?.size ?? 0;
+  io.to(sessionId).emit("users-count", count);
 }
 
 io.on("connection", (socket) => {
-  socket.on("join-session", () => {
-    socket.join(SESSION_ID);
-    socket.emit("session-state", getSessionState());
-    emitUsersCount();
+  socket.on("join-session", (payload: JoinSessionPayload = {}) => {
+    const previousSessionId = socket.data.sessionId as string | undefined;
+    const sessionId = resolveSessionId(payload.sessionId);
+
+    if (previousSessionId && previousSessionId !== sessionId) {
+      socket.leave(previousSessionId);
+      emitUsersCount(previousSessionId);
+    }
+
+    socket.data.sessionId = sessionId;
+    socket.data.user = payload.user;
+    socket.join(sessionId);
+    socket.emit("session-state", getSessionState(sessionId));
+    emitUsersCount(sessionId);
   });
 
-  socket.on("add-annotation", (annotation: ReviewAnnotation) => {
-    const saved = addAnnotation(annotation);
-    io.to(SESSION_ID).emit("annotation-added", saved);
+  socket.on("add-annotation", (payload: AddAnnotationPayload) => {
+    const sessionId = resolveSessionId(payload?.sessionId ?? socket.data.sessionId);
+    if (!payload?.annotation) {
+      return;
+    }
+
+    const saved = addAnnotation(sessionId, payload.annotation);
+    io.to(sessionId).emit("annotation-added", saved);
   });
 
-  socket.on("add-comment", (comment: ReviewComment) => {
-    const saved = addComment(comment);
-    io.to(SESSION_ID).emit("comment-added", saved);
+  socket.on("add-comment", (payload: AddCommentPayload) => {
+    const sessionId = resolveSessionId(payload?.sessionId ?? socket.data.sessionId);
+    if (!payload?.comment) {
+      return;
+    }
+
+    const saved = addComment(sessionId, payload.comment);
+    io.to(sessionId).emit("comment-added", saved);
   });
 
-  socket.on("clear-session", () => {
-    clearSession();
-    io.to(SESSION_ID).emit("session-cleared");
+  socket.on("clear-session", (payload: ClearSessionPayload = {}) => {
+    const sessionId = resolveSessionId(payload.sessionId ?? socket.data.sessionId);
+    clearSession(sessionId);
+    io.to(sessionId).emit("session-cleared");
   });
 
-  socket.on("disconnect", emitUsersCount);
+  socket.on("disconnect", () => {
+    const sessionId = socket.data.sessionId as string | undefined;
+    if (sessionId) {
+      emitUsersCount(sessionId);
+    }
+  });
 });
 
 httpServer.listen(PORT, () => {

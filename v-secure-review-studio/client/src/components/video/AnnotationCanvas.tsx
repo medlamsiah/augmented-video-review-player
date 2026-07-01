@@ -72,6 +72,8 @@ function drawAnnotation(ctx: CanvasRenderingContext2D, annotation: ReviewAnnotat
 
 export function AnnotationCanvas({ annotations, currentTime, activeTool, color, thickness, author, onDrawingStart, onCreate }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const draftRef = useRef<ReviewAnnotation | null>(null);
+  const isDrawingRef = useRef(false);
   const [draft, setDraft] = useState<ReviewAnnotation | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
@@ -118,11 +120,11 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
   }
 
   function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     onDrawingStart?.();
     const point = getPoint(event);
-    setIsDrawing(true);
-    setDraft({
+    const nextDraft = {
       id: crypto.randomUUID(),
       type: activeTool,
       color,
@@ -131,32 +133,43 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
       author,
       createdAt: new Date().toISOString(),
       points: [point, point]
-    });
+    };
+
+    isDrawingRef.current = true;
+    draftRef.current = nextDraft;
+    setIsDrawing(true);
+    setDraft(nextDraft);
   }
 
   function updateDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
-    if (!isDrawing || !draft) {
+    if (!isDrawingRef.current || !draftRef.current) {
       return;
     }
 
+    event.preventDefault();
     const point = getPoint(event);
-    setDraft((previous) => {
-      if (!previous) {
-        return previous;
-      }
+    const currentDraft = draftRef.current;
+    const nextDraft = {
+      ...currentDraft,
+      points: currentDraft.type === "freehand" ? [...currentDraft.points, point] : [currentDraft.points[0], point]
+    };
 
-      return {
-        ...previous,
-        points: previous.type === "freehand" ? [...previous.points, point] : [previous.points[0], point]
-      };
-    });
+    draftRef.current = nextDraft;
+    setDraft(nextDraft);
   }
 
   function finishDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    event.preventDefault();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const completedDraft = draftRef.current;
+    isDrawingRef.current = false;
+    draftRef.current = null;
     setIsDrawing(false);
-    if (draft && draft.points.length >= 2) {
-      onCreate(draft);
+    if (completedDraft && completedDraft.points.length >= 2) {
+      onCreate(completedDraft);
     }
     setDraft(null);
   }
@@ -169,6 +182,8 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
       onPointerMove={updateDrawing}
       onPointerUp={finishDrawing}
       onPointerCancel={() => {
+        draftRef.current = null;
+        isDrawingRef.current = false;
         setDraft(null);
         setIsDrawing(false);
       }}
