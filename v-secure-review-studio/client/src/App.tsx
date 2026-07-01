@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { AnnotationTool, ReviewAnnotation } from "./types/annotation";
 import type { ReviewComment } from "./types/comment";
@@ -41,6 +41,8 @@ export default function App() {
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [transcription, setTranscription] = useState<VideoTranscription | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const pendingAnnotationsRef = useRef<ReviewAnnotation[]>([]);
+  const pendingCommentsRef = useRef<ReviewComment[]>([]);
 
   useEffect(() => {
     void fetchMe()
@@ -53,6 +55,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const emitAnnotation = (annotation: ReviewAnnotation) => {
+      socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
+    };
+
+    const emitComment = (comment: ReviewComment) => {
+      socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
+    };
+
+    const flushPending = () => {
+      pendingAnnotationsRef.current.forEach(emitAnnotation);
+      pendingCommentsRef.current.forEach(emitComment);
+      pendingAnnotationsRef.current = [];
+      pendingCommentsRef.current = [];
+    };
+
     const join = () => {
       setConnected(true);
       socket.emit("join-session", {
@@ -63,6 +80,7 @@ export default function App() {
           role: currentUser.role
         }
       });
+      flushPending();
     };
 
     socket.on("connect", join);
@@ -108,6 +126,8 @@ export default function App() {
     setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     if (connected) {
       socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
+    } else {
+      pendingAnnotationsRef.current = [annotation, ...pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id)];
     }
     showToast("Annotation ajoutee");
   }
@@ -124,6 +144,8 @@ export default function App() {
     setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     if (connected) {
       socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
+    } else {
+      pendingCommentsRef.current = [comment, ...pendingCommentsRef.current.filter((item) => item.id !== comment.id)];
     }
     showToast("Commentaire synchronise");
   }

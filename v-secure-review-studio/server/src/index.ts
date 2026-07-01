@@ -93,6 +93,28 @@ function emitUsersCount(sessionId: string) {
   io.to(sessionId).emit("users-count", count);
 }
 
+function getAnnotationPayload(payload: AddAnnotationPayload | unknown, fallbackSessionId?: string) {
+  const maybePayload = payload as Partial<AddAnnotationPayload>;
+  const maybeLegacyAnnotation = payload as AddAnnotationPayload["annotation"];
+  const annotation = maybePayload?.annotation ?? (maybeLegacyAnnotation?.points ? maybeLegacyAnnotation : undefined);
+
+  return {
+    sessionId: resolveSessionId(maybePayload?.sessionId ?? fallbackSessionId),
+    annotation
+  };
+}
+
+function getCommentPayload(payload: AddCommentPayload | unknown, fallbackSessionId?: string) {
+  const maybePayload = payload as Partial<AddCommentPayload>;
+  const maybeLegacyComment = payload as AddCommentPayload["comment"];
+  const comment = maybePayload?.comment ?? (maybeLegacyComment?.body ? maybeLegacyComment : undefined);
+
+  return {
+    sessionId: resolveSessionId(maybePayload?.sessionId ?? fallbackSessionId),
+    comment
+  };
+}
+
 io.on("connection", (socket) => {
   socket.on("join-session", (payload: JoinSessionPayload = {}) => {
     const previousSessionId = socket.data.sessionId as string | undefined;
@@ -110,23 +132,23 @@ io.on("connection", (socket) => {
     emitUsersCount(sessionId);
   });
 
-  socket.on("add-annotation", (payload: AddAnnotationPayload) => {
-    const sessionId = resolveSessionId(payload?.sessionId ?? socket.data.sessionId);
-    if (!payload?.annotation) {
+  socket.on("add-annotation", (payload: AddAnnotationPayload | unknown) => {
+    const { sessionId, annotation } = getAnnotationPayload(payload, socket.data.sessionId);
+    if (!annotation) {
       return;
     }
 
-    const saved = addAnnotation(sessionId, payload.annotation);
+    const saved = addAnnotation(sessionId, annotation);
     io.to(sessionId).emit("annotation-added", saved);
   });
 
-  socket.on("add-comment", (payload: AddCommentPayload) => {
-    const sessionId = resolveSessionId(payload?.sessionId ?? socket.data.sessionId);
-    if (!payload?.comment) {
+  socket.on("add-comment", (payload: AddCommentPayload | unknown) => {
+    const { sessionId, comment } = getCommentPayload(payload, socket.data.sessionId);
+    if (!comment) {
       return;
     }
 
-    const saved = addComment(sessionId, payload.comment);
+    const saved = addComment(sessionId, comment);
     io.to(sessionId).emit("comment-added", saved);
   });
 
