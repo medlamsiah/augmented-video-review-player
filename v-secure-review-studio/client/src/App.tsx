@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Activity, Clock3, RadioTower, ShieldCheck, UsersRound } from "lucide-react";
 import type { AnnotationTool, ReviewAnnotation } from "./types/annotation";
 import type { ReviewComment } from "./types/comment";
 import type { VideoTranscription } from "./types/transcription";
 import { socket } from "./lib/socket";
-import { uid } from "./lib/utils";
-import { getCurrentUser } from "./data/demoUsers";
+import { formatTime, uid } from "./lib/utils";
+import { demoUsers, getCurrentUser } from "./data/demoUsers";
 import { AppShell } from "./components/layout/AppShell";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TopBar } from "./components/layout/TopBar";
@@ -64,6 +65,22 @@ const copy = {
       emptyTitle: "Aucune annotation",
       emptyBody: "Dessinez sur la video pour creer un retour visuel horodate."
     },
+    workspace: {
+      eyebrow: "Espace equipe",
+      title: "Pilotage collaboratif",
+      body: "Suivez les reviewers, le statut de synchronisation et les derniers retours crees pendant la session.",
+      liveSession: "Session live",
+      secureRoom: "Salle securisee",
+      reviewers: "Relecteurs",
+      currentMoment: "Moment actuel",
+      teamMembers: "Membres de l'equipe",
+      recentActivity: "Activite recente",
+      noActivity: "Aucune activite pour le moment.",
+      online: "en ligne",
+      synced: "synchronise",
+      annotations: "annotations",
+      comments: "commentaires"
+    },
     exportJson: "Exporter JSON",
     toasts: {
       sessionCleared: "Session nettoyee",
@@ -111,6 +128,22 @@ const copy = {
       emptyTitle: "No annotations",
       emptyBody: "Draw on the video to create timestamped visual feedback."
     },
+    workspace: {
+      eyebrow: "Team workspace",
+      title: "Collaborative command center",
+      body: "Track reviewers, sync status and the latest feedback created during the session.",
+      liveSession: "Live session",
+      secureRoom: "Secure room",
+      reviewers: "Reviewers",
+      currentMoment: "Current moment",
+      teamMembers: "Team members",
+      recentActivity: "Recent activity",
+      noActivity: "No activity yet.",
+      online: "online",
+      synced: "synced",
+      annotations: "annotations",
+      comments: "comments"
+    },
     exportJson: "Export JSON",
     toasts: {
       sessionCleared: "Session cleared",
@@ -156,6 +189,25 @@ export default function App() {
   const pendingAnnotationsRef = useRef<ReviewAnnotation[]>([]);
   const pendingCommentsRef = useRef<ReviewComment[]>([]);
   const labels = copy[language];
+  const teamMembers = [currentUser, ...demoUsers.filter((user) => user.name !== currentUser.name)].slice(0, 4);
+  const recentActivity = [
+    ...annotations.map((annotation) => ({
+      id: annotation.id,
+      author: annotation.author,
+      time: annotation.timestamp,
+      createdAt: annotation.createdAt,
+      label: `${annotation.type} - ${labels.workspace.annotations}`
+    })),
+    ...comments.map((comment) => ({
+      id: comment.id,
+      author: comment.author,
+      time: comment.timestamp,
+      createdAt: comment.createdAt,
+      label: `${comment.body.slice(0, 42) || labels.workspace.comments}`
+    }))
+  ]
+    .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+    .slice(0, 4);
 
   useEffect(() => {
     void fetchMe()
@@ -417,6 +469,80 @@ export default function App() {
                 showToast(labels.toasts.transcriptionReady);
               }}
             />
+            <Card className="team-workspace-card" id="company" tabIndex={-1}>
+              <div className="team-workspace-hero">
+                <div className="section-heading">
+                  <span>{labels.workspace.eyebrow}</span>
+                  <strong>{labels.workspace.title}</strong>
+                </div>
+                <p>{labels.workspace.body}</p>
+              </div>
+
+              <div className="workspace-metrics">
+                <div>
+                  <RadioTower size={18} />
+                  <span>{labels.workspace.liveSession}</span>
+                  <strong>{connected ? labels.workspace.synced : labels.topbar.offline}</strong>
+                </div>
+                <div>
+                  <UsersRound size={18} />
+                  <span>{labels.workspace.reviewers}</span>
+                  <strong>{usersCount}</strong>
+                </div>
+                <div>
+                  <Clock3 size={18} />
+                  <span>{labels.workspace.currentMoment}</span>
+                  <strong>{formatTime(currentTime)}</strong>
+                </div>
+                <div>
+                  <ShieldCheck size={18} />
+                  <span>{labels.workspace.secureRoom}</span>
+                  <strong>Zero Trust</strong>
+                </div>
+              </div>
+
+              <div className="workspace-panels">
+                <div className="workspace-panel">
+                  <div className="workspace-panel-title">
+                    <UsersRound size={17} />
+                    <strong>{labels.workspace.teamMembers}</strong>
+                  </div>
+                  <div className="team-member-list">
+                    {teamMembers.map((member) => (
+                      <div className="team-member-row" key={member.name}>
+                        <span style={{ background: member.accent }}>{member.name.slice(0, 1)}</span>
+                        <div>
+                          <strong>{member.name}</strong>
+                          <small>{member.role} - {labels.workspace.online}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="workspace-panel">
+                  <div className="workspace-panel-title">
+                    <Activity size={17} />
+                    <strong>{labels.workspace.recentActivity}</strong>
+                  </div>
+                  {recentActivity.length > 0 ? (
+                    <div className="activity-list">
+                      {recentActivity.map((activity) => (
+                        <button className="activity-row" key={activity.id} type="button" onClick={() => seek(activity.time)}>
+                          <span>{formatTime(activity.time)}</span>
+                          <div>
+                            <strong>{activity.author}</strong>
+                            <small>{activity.label}</small>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="workspace-empty">{labels.workspace.noActivity}</p>
+                  )}
+                </div>
+              </div>
+            </Card>
           </motion.div>
         </section>
 
