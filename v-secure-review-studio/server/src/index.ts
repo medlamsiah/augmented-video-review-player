@@ -20,8 +20,35 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "v-secure-review-studio-server", session: DEFAULT_SESSION_ID });
 });
 
-app.get("/session", (_req, res) => {
-  res.json(getSessionState(DEFAULT_SESSION_ID));
+app.get("/session", (req, res) => {
+  const sessionId = typeof req.query.sessionId === "string" ? req.query.sessionId : DEFAULT_SESSION_ID;
+  res.json(getSessionState(sessionId));
+});
+
+app.post("/session/:sessionId/annotations", (req, res) => {
+  const sessionId = resolveSessionId(req.params.sessionId);
+  const annotation = req.body as AddAnnotationPayload["annotation"] | undefined;
+  if (!annotation?.points) {
+    res.status(400).json({ error: "invalid_annotation" });
+    return;
+  }
+
+  const saved = addAnnotation(sessionId, annotation);
+  io.to(sessionId).emit("annotation-added", saved);
+  res.status(201).json(saved);
+});
+
+app.post("/session/:sessionId/comments", (req, res) => {
+  const sessionId = resolveSessionId(req.params.sessionId);
+  const comment = req.body as AddCommentPayload["comment"] | undefined;
+  if (!comment?.body) {
+    res.status(400).json({ error: "invalid_comment" });
+    return;
+  }
+
+  const saved = addComment(sessionId, comment);
+  io.to(sessionId).emit("comment-added", saved);
+  res.status(201).json(saved);
 });
 
 function bearerToken(req: express.Request) {

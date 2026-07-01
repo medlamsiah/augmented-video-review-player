@@ -25,6 +25,19 @@ import { Card } from "./components/ui/Card";
 import { Toast } from "./components/ui/Toast";
 
 const REVIEW_SESSION_ID = "default-review-session";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/vsecure-api" : "http://localhost:4500");
+
+function mergeById<T extends { id: string }>(remote: T[], pending: T[]) {
+  const seen = new Set<string>();
+  return [...pending, ...remote].filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+
+    seen.add(item.id);
+    return true;
+  });
+}
 
 export default function App() {
   const [fallbackUser] = useState(() => getCurrentUser());
@@ -86,13 +99,15 @@ export default function App() {
     socket.on("connect", join);
     socket.on("disconnect", () => setConnected(false));
     socket.on("session-state", (state) => {
-      setAnnotations(state.annotations);
-      setComments(state.comments);
+      setAnnotations(mergeById(state.annotations, pendingAnnotationsRef.current));
+      setComments(mergeById(state.comments, pendingCommentsRef.current));
     });
     socket.on("annotation-added", (annotation) => {
+      pendingAnnotationsRef.current = pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id);
       setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     });
     socket.on("comment-added", (comment) => {
+      pendingCommentsRef.current = pendingCommentsRef.current.filter((item) => item.id !== comment.id);
       setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     });
     socket.on("session-cleared", () => {
@@ -117,18 +132,76 @@ export default function App() {
     };
   }, [currentUser]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncSessionSnapshot() {
+      try {
+        const response = await fetch(`${API_URL}/session?sessionId=${encodeURIComponent(REVIEW_SESSION_ID)}`);
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const state = await response.json();
+        setAnnotations(mergeById(state.annotations ?? [], pendingAnnotationsRef.current));
+        setComments(mergeById(state.comments ?? [], pendingCommentsRef.current));
+      } catch {
+        return;
+      }
+    }
+
+    void syncSessionSnapshot();
+    const interval = window.setInterval(syncSessionSnapshot, 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  async function persistAnnotation(annotation: ReviewAnnotation) {
+    try {
+      const response = await fetch(`${API_URL}/session/${encodeURIComponent(REVIEW_SESSION_ID)}/annotations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(annotation)
+      });
+
+      if (response.ok) {
+        pendingAnnotationsRef.current = pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id);
+      }
+    } catch {
+      return;
+    }
+  }
+
+  async function persistComment(comment: ReviewComment) {
+    try {
+      const response = await fetch(`${API_URL}/session/${encodeURIComponent(REVIEW_SESSION_ID)}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(comment)
+      });
+
+      if (response.ok) {
+        pendingCommentsRef.current = pendingCommentsRef.current.filter((item) => item.id !== comment.id);
+      }
+    } catch {
+      return;
+    }
+  }
+
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
   }
 
   function addAnnotation(annotation: ReviewAnnotation) {
+    pendingAnnotationsRef.current = [annotation, ...pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id)];
     setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     if (connected) {
       socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
-    } else {
-      pendingAnnotationsRef.current = [annotation, ...pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id)];
     }
+    void persistAnnotation(annotation);
     showToast("Annotation ajoutee");
   }
 
@@ -141,12 +214,12 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
+    pendingCommentsRef.current = [comment, ...pendingCommentsRef.current.filter((item) => item.id !== comment.id)];
     setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     if (connected) {
       socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
-    } else {
-      pendingCommentsRef.current = [comment, ...pendingCommentsRef.current.filter((item) => item.id !== comment.id)];
     }
+    void persistComment(comment);
     showToast("Commentaire synchronise");
   }
 
