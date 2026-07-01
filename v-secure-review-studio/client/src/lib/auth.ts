@@ -1,6 +1,6 @@
 import type { AuthUser } from "../components/auth/AuthModal";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4500";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/vsecure-api" : "http://localhost:4500");
 const TOKEN_KEY = "vsecure-review-token";
 const USER_KEY = "vsecure-review-user";
 

@@ -2,16 +2,40 @@ services:
   review-studio:
     build:
       context: .
+      args:
+        VITE_BASE_PATH: "/vsecure/"
+        VITE_API_URL: "/vsecure-api"
+        VITE_SOCKET_URL: ""
+        VITE_SOCKET_PATH: "/vsecure-socket/socket.io"
+        VITE_HLS_URL: "/vsecure-hls/master.m3u8"
     container_name: v-secure-review-studio
     restart: unless-stopped
     environment:
       PORT: "4500"
       CLIENT_DIST_DIR: "/app/client/dist"
       AUTH_USERS_FILE: "/app/server/storage/users.json"
+      APP_BASE_PATH: "/vsecure"
+      SOCKET_PATH: "/vsecure-socket/socket.io"
     ports:
-      - "4500:4500"
+      - "127.0.0.1:4500:4500"
     volumes:
       - review-studio-users:/app/server/storage
+
+  hls-key-server:
+    image: node:20-alpine
+    container_name: v-secure-hls-key-server-prod
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PORT: "7001"
+      KEY_TOKEN: "demo-secure-token"
+      KEY_FILE: "/app/secrets/demo.key"
+    ports:
+      - "127.0.0.1:7001:7001"
+    volumes:
+      - ./secure-streaming/key-server:/app
+      - ./secure-streaming/secrets:/app/secrets:ro
+    command: sh -c "npm install && npm run dev"
 
 volumes:
   review-studio-users:

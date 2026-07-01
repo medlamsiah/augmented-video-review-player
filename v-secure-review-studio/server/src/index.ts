@@ -10,6 +10,8 @@ import type { ReviewAnnotation, ReviewComment } from "./types.js";
 
 const PORT = Number(process.env.PORT ?? 4500);
 const SESSION_ID = "secure-demo-video";
+const APP_BASE_PATH = process.env.APP_BASE_PATH ?? "/";
+const SOCKET_PATH = process.env.SOCKET_PATH ?? "/socket.io";
 
 const app = express();
 app.use(cors({ origin: "*" }));
@@ -68,14 +70,15 @@ app.post("/auth/logout", (req, res) => {
 
 const clientDist = resolve(process.env.CLIENT_DIST_DIR ?? "../client/dist");
 if (existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-  app.get("*", (_req, res) => {
+  app.use(APP_BASE_PATH, express.static(clientDist));
+  app.get(`${APP_BASE_PATH.replace(/\/$/, "")}/*`, (_req, res) => {
     res.sendFile(resolve(clientDist, "index.html"));
   });
 }
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
+  path: SOCKET_PATH,
   cors: {
     origin: "*",
     methods: ["GET", "POST"]

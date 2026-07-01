@@ -7,8 +7,8 @@ import type { AnnotationTool, ReviewAnnotation } from "../../types/annotation";
 import { Button } from "../ui/Button";
 import { AnnotationCanvas } from "./AnnotationCanvas";
 
-const DEFAULT_VIDEO_SOURCE = "/sample.mp4";
-const SECURE_HLS_SOURCE = "http://localhost:8080/hls/master.m3u8";
+const DEFAULT_VIDEO_SOURCE = `${import.meta.env.BASE_URL}sample.mp4`;
+const SECURE_HLS_SOURCE = import.meta.env.VITE_HLS_URL || (import.meta.env.PROD ? "/vsecure-hls/master.m3u8" : "http://localhost:8080/hls/master.m3u8");
 const VIDEO_NOT_FOUND_MESSAGE = "Video not found. Please add sample.mp4 inside client/public/";
 const HLS_NOT_AVAILABLE_MESSAGE = "Secure HLS stream unavailable. Run secure-streaming/scripts/prepare-demo.sh then docker compose up inside secure-streaming/.";
 type VideoSourceType = "mp4" | "hls";
@@ -139,7 +139,7 @@ export function PremiumVideoPlayer({
 
   function useSecureHls() {
     setSource(SECURE_HLS_SOURCE);
-    setSourceLabel("Secure HLS: http://localhost:8080/hls/master.m3u8");
+    setSourceLabel(`Secure HLS: ${SECURE_HLS_SOURCE}`);
     setSourceType("hls");
     setVideoError(null);
     onTimeUpdate(0);
