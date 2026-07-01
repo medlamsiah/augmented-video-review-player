@@ -6,8 +6,10 @@ type AnnotationLayerProps = {
   currentTime: number;
 };
 
+const ANNOTATION_VISIBILITY_WINDOW_SECONDS = 6;
+
 export function AnnotationLayer({ annotations, currentTime }: AnnotationLayerProps) {
-  const active = annotations.filter((annotation) => Math.abs(annotation.timestamp - currentTime) <= 1.5).slice(0, 3);
+  const active = annotations.filter((annotation) => Math.abs(annotation.timestamp - currentTime) <= ANNOTATION_VISIBILITY_WINDOW_SECONDS).slice(0, 3);
 
   if (!active.length) {
     return null;

@@ -8,8 +8,11 @@ type AnnotationCanvasProps = {
   color: string;
   thickness: number;
   author: string;
+  onDrawingStart?: () => void;
   onCreate: (annotation: ReviewAnnotation) => void;
 };
+
+const ANNOTATION_VISIBILITY_WINDOW_SECONDS = 6;
 
 function drawAnnotation(ctx: CanvasRenderingContext2D, annotation: ReviewAnnotation, width: number, height: number) {
   const points = annotation.points.map((point) => ({ x: point.x * width, y: point.y * height }));
@@ -67,7 +70,7 @@ function drawAnnotation(ctx: CanvasRenderingContext2D, annotation: ReviewAnnotat
   ctx.restore();
 }
 
-export function AnnotationCanvas({ annotations, currentTime, activeTool, color, thickness, author, onCreate }: AnnotationCanvasProps) {
+export function AnnotationCanvas({ annotations, currentTime, activeTool, color, thickness, author, onDrawingStart, onCreate }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [draft, setDraft] = useState<ReviewAnnotation | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -98,7 +101,7 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const visible = annotations.filter((annotation) => Math.abs(annotation.timestamp - currentTime) <= 1.5);
+    const visible = annotations.filter((annotation) => Math.abs(annotation.timestamp - currentTime) <= ANNOTATION_VISIBILITY_WINDOW_SECONDS);
     visible.forEach((annotation) => drawAnnotation(ctx, annotation, canvas.width, canvas.height));
     if (draft) {
       drawAnnotation(ctx, draft, canvas.width, canvas.height);
@@ -116,6 +119,7 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
 
   function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
+    onDrawingStart?.();
     const point = getPoint(event);
     setIsDrawing(true);
     setDraft({

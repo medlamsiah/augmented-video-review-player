@@ -160,6 +160,16 @@ export function PremiumVideoPlayer({
     onDurationChange(0);
   }
 
+  function pauseForAnnotation() {
+    const video = videoRef.current;
+    if (!video || video.paused) {
+      return;
+    }
+
+    video.pause();
+    onTimeUpdate(video.currentTime);
+  }
+
   async function togglePlayback() {
     const video = videoRef.current;
     if (!video || videoError) {
@@ -206,6 +216,7 @@ export function PremiumVideoPlayer({
           color={color}
           thickness={thickness}
           author={author}
+          onDrawingStart={pauseForAnnotation}
           onCreate={onCreateAnnotation}
         />
       </div>

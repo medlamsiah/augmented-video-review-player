@@ -96,10 +96,9 @@ export default function App() {
   }
 
   function addAnnotation(annotation: ReviewAnnotation) {
+    setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     if (connected) {
       socket.emit("add-annotation", annotation);
-    } else {
-      setAnnotations((previous) => [annotation, ...previous]);
     }
     showToast("Annotation ajoutee");
   }
@@ -113,10 +112,9 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
+    setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     if (connected) {
       socket.emit("add-comment", comment);
-    } else {
-      setComments((previous) => [comment, ...previous]);
     }
     showToast("Commentaire synchronise");
   }
