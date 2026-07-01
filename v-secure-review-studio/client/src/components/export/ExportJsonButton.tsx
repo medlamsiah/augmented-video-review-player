@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import type { ReviewAnnotation } from "../../types/annotation";
 import type { ReviewComment } from "../../types/comment";
 import type { VideoTranscription } from "../../types/transcription";
+import type { VideoAiAnalysis, VideoSummary } from "../../types/video";
 import { downloadJson } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { ExportPreviewModal } from "./ExportPreviewModal";
@@ -10,6 +11,8 @@ import { ExportPreviewModal } from "./ExportPreviewModal";
 type ExportJsonButtonProps = {
   annotations: ReviewAnnotation[];
   comments: ReviewComment[];
+  video?: VideoSummary | null;
+  aiAnalysis?: VideoAiAnalysis | null;
   transcription?: VideoTranscription | null;
   label: string;
   canExport: boolean;
@@ -17,18 +20,20 @@ type ExportJsonButtonProps = {
   onExported: () => void;
 };
 
-export function ExportJsonButton({ annotations, comments, transcription, label, canExport, onAuthRequired, onExported }: ExportJsonButtonProps) {
+export function ExportJsonButton({ annotations, comments, video, aiAnalysis, transcription, label, canExport, onAuthRequired, onExported }: ExportJsonButtonProps) {
   const [open, setOpen] = useState(false);
   const payload = useMemo(
     () => ({
       project: "V-Secure Review Studio",
-      videoId: "secure-demo-video",
+      videoId: video?.id ?? "secure-demo-video",
+      video: video ?? null,
       exportedAt: new Date().toISOString(),
       annotations,
       comments,
+      aiAnalysis: aiAnalysis ?? null,
       transcription: transcription ?? null
     }),
-    [annotations, comments, transcription]
+    [aiAnalysis, annotations, comments, transcription, video]
   );
 
   function download() {

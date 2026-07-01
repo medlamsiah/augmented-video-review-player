@@ -14,12 +14,14 @@ services:
       PORT: "4500"
       CLIENT_DIST_DIR: "/app/client/dist"
       AUTH_USERS_FILE: "/app/server/storage/users.json"
+      DATABASE_URL: "file:../storage/vsecure.db"
       APP_BASE_PATH: "/vsecure"
       SOCKET_PATH: "/vsecure-socket/socket.io"
     ports:
       - "127.0.0.1:4500:4500"
     volumes:
       - review-studio-users:/app/server/storage
+      - review-studio-uploads:/app/server/uploads
 
   hls-key-server:
     image: node:20-alpine
@@ -39,3 +41,4 @@ services:
 
 volumes:
   review-studio-users:
+  review-studio-uploads:

@@ -1,10 +1,13 @@
 import type { ReviewAnnotation } from "./annotation";
 import type { ReviewComment } from "./comment";
+import type { VideoAiAnalysis, VideoSummary } from "./video";
 
 export type ReviewSessionState = {
   videoId: string;
+  video?: VideoSummary | null;
   annotations: ReviewAnnotation[];
   comments: ReviewComment[];
+  aiAnalysis?: VideoAiAnalysis | null;
 };
 
 export type ReviewPresenceUser = {

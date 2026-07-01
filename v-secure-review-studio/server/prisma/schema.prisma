@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id               String             @id @default(cuid())
+  title            String
+  originalFilename String
+  storedFilename   String
+  url              String
+  mimeType         String
+  size             Int
+  duration         Float?
+  thumbnail        String?
+  aiStatus         String             @default("pending")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  comments         ReviewComment[]
+  annotations      ReviewAnnotation[]
+  aiAnalysis       VideoAiAnalysis?
+}
+
+model ReviewComment {
+  id        String   @id
+  videoId   String
+  timestamp Float
+  body      String
+  author    String
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, createdAt])
+}
+
+model ReviewAnnotation {
+  id        String   @id
+  videoId   String
+  type      String
+  color     String
+  thickness Int
+  timestamp Float
+  author    String
+  points    Json
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, createdAt])
+}
+
+model VideoAiAnalysis {
+  id            String   @id @default(cuid())
+  videoId       String   @unique
+  summary       String?
+  transcription Json?
+  chapters      Json?
+  keywords      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  video         Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}

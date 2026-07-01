@@ -122,6 +122,123 @@ button {
   background: rgba(148, 163, 184, 0.12);
 }
 
+.video-library {
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.video-library-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-library-header span {
+  color: #67e8f9;
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.video-library-header strong {
+  display: block;
+  color: #f8fafc;
+}
+
+.video-library-header .button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+
+.video-library-header input {
+  display: none;
+}
+
+.video-library-list {
+  max-height: 265px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.video-library-list > p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.video-library-item {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 13px;
+  color: #cbd5e1;
+  background: rgba(2, 6, 23, 0.28);
+  text-align: left;
+}
+
+.video-library-item:hover,
+.video-library-item.is-active {
+  border-color: rgba(34, 211, 238, 0.36);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.video-library-item > svg,
+.video-library-item em {
+  color: #22d3ee;
+}
+
+.video-library-item strong,
+.video-library-item small,
+.video-library-item span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-library-item strong {
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.video-library-item small,
+.video-library-item span {
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.video-library-item span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.video-library-item em {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.1);
+}
+
 .glass-card,
 .timeline-card,
 .comments-panel,

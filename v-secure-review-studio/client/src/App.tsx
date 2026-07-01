@@ -4,13 +4,16 @@ import { Activity, Clock3, KeyRound, LockKeyhole, RadioTower, Server, ShieldChec
 import type { AnnotationTool, ReviewAnnotation } from "./types/annotation";
 import type { ReviewComment } from "./types/comment";
 import type { VideoTranscription } from "./types/transcription";
+import type { VideoAiAnalysis, VideoSummary } from "./types/video";
 import { socket } from "./lib/socket";
 import { formatTime, uid } from "./lib/utils";
+import { fetchVideos, resolveVideoUrl, uploadVideo } from "./lib/videos";
 import { demoUsers, getCurrentUser } from "./data/demoUsers";
 import { AppShell } from "./components/layout/AppShell";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TopBar } from "./components/layout/TopBar";
 import { PremiumVideoPlayer } from "./components/video/PremiumVideoPlayer";
+import { VideoLibrary } from "./components/video/VideoLibrary";
 import { VideoTimeline } from "./components/video/VideoTimeline";
 import { VideoStats } from "./components/video/VideoStats";
 import { AnnotationToolbar } from "./components/annotations/AnnotationToolbar";
@@ -55,6 +58,14 @@ const copy = {
       submit: "Ajouter",
       emptyTitle: "Aucun commentaire",
       emptyBody: "Ajoutez une note, elle sera synchronisee dans les autres onglets."
+    },
+    library: {
+      title: "Video Library",
+      upload: "Upload",
+      empty: "Aucune video uploadee.",
+      aiReady: "Analyse IA disponible",
+      comments: "com.",
+      annotations: "ann."
     },
     stats: {
       duration: "Duree",
@@ -128,6 +139,11 @@ const copy = {
       jsonExported: "JSON exporte",
       transcriptionReady: "Transcription generee",
       authRequired: "Connectez-vous pour signer cette action.",
+      videosLoaded: "Bibliotheque video chargee",
+      videoUploadRequired: "Connectez-vous pour uploader une video.",
+      videoUploaded: "Video uploadee",
+      videoSelected: "Video chargee",
+      videoUploadFailed: "Upload video impossible",
       signedIn: "est connecte",
       signedOut: "Session fermee"
     }
@@ -153,6 +169,14 @@ const copy = {
       submit: "Add",
       emptyTitle: "No comments",
       emptyBody: "Add a note and it will sync across other tabs."
+    },
+    library: {
+      title: "Video Library",
+      upload: "Upload",
+      empty: "No uploaded videos yet.",
+      aiReady: "AI analysis available",
+      comments: "com.",
+      annotations: "ann."
     },
     stats: {
       duration: "Duration",
@@ -226,6 +250,11 @@ const copy = {
       jsonExported: "JSON exported",
       transcriptionReady: "Transcription generated",
       authRequired: "Sign in to sign this action.",
+      videosLoaded: "Video library loaded",
+      videoUploadRequired: "Sign in to upload a video.",
+      videoUploaded: "Video uploaded",
+      videoSelected: "Video loaded",
+      videoUploadFailed: "Video upload failed",
       signedIn: "is signed in",
       signedOut: "Signed out"
     }
@@ -247,6 +276,9 @@ function mergeById<T extends { id: string }>(remote: T[], pending: T[]) {
 export default function App() {
   const [fallbackUser] = useState(() => getCurrentUser());
   const [currentUser, setCurrentUser] = useState<AuthUser>(() => loadStoredAuthUser() ?? fallbackUser);
+  const [videos, setVideos] = useState<VideoSummary[]>([]);
+  const [currentVideo, setCurrentVideo] = useState<VideoSummary | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [annotations, setAnnotations] = useState<ReviewAnnotation[]>([]);
   const [comments, setComments] = useState<ReviewComment[]>([]);
   const [activeTool, setActiveTool] = useState<AnnotationTool>("freehand");
@@ -258,6 +290,7 @@ export default function App() {
   const [connected, setConnected] = useState(socket.connected);
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [transcription, setTranscription] = useState<VideoTranscription | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<VideoAiAnalysis | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("fr");
@@ -265,6 +298,14 @@ export default function App() {
   const pendingCommentsRef = useRef<ReviewComment[]>([]);
   const labels = copy[language];
   const isAuthenticated = Boolean(currentUser.email);
+  const activeSessionId = currentVideo?.id ?? REVIEW_SESSION_ID;
+  const activeVideoSource = currentVideo
+    ? {
+        id: currentVideo.id,
+        url: resolveVideoUrl(currentVideo.url),
+        label: currentVideo.title
+      }
+    : undefined;
   const teamMembers = [currentUser, ...demoUsers.filter((user) => user.name !== currentUser.name)].slice(0, 4);
   const recentActivity = [
     ...annotations.map((annotation) => ({
@@ -296,12 +337,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadVideos() {
+      try {
+        const nextVideos = await fetchVideos();
+        if (cancelled) {
+          return;
+        }
+
+        setVideos(nextVideos);
+        setCurrentVideo((previous) => previous ?? nextVideos.find((video) => video.id === REVIEW_SESSION_ID) ?? nextVideos[0] ?? null);
+      } catch {
+        return;
+      }
+    }
+
+    void loadVideos();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const emitAnnotation = (annotation: ReviewAnnotation) => {
-      socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
+      socket.emit("add-annotation", { sessionId: activeSessionId, annotation });
     };
 
     const emitComment = (comment: ReviewComment) => {
-      socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
+      socket.emit("add-comment", { sessionId: activeSessionId, comment });
     };
 
     const flushPending = () => {
@@ -314,7 +378,7 @@ export default function App() {
     const join = () => {
       setConnected(true);
       socket.emit("join-session", {
-        sessionId: REVIEW_SESSION_ID,
+        sessionId: activeSessionId,
         user: {
           name: currentUser.name,
           email: currentUser.email,
@@ -327,6 +391,11 @@ export default function App() {
     socket.on("connect", join);
     socket.on("disconnect", () => setConnected(false));
     socket.on("session-state", (state) => {
+      if (state.video) {
+        setCurrentVideo(state.video);
+        setVideos((previous) => [state.video!, ...previous.filter((video) => video.id !== state.video!.id)]);
+      }
+      setAiAnalysis(state.aiAnalysis ?? null);
       setAnnotations(mergeById(state.annotations, pendingAnnotationsRef.current));
       setComments(mergeById(state.comments, pendingCommentsRef.current));
     });
@@ -358,19 +427,24 @@ export default function App() {
       socket.off("session-cleared");
       socket.off("users-count");
     };
-  }, [currentUser, labels.toasts.sessionCleared]);
+  }, [activeSessionId, currentUser, labels.toasts.sessionCleared]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function syncSessionSnapshot() {
       try {
-        const response = await fetch(`${API_URL}/session?sessionId=${encodeURIComponent(REVIEW_SESSION_ID)}`);
+        const response = await fetch(`${API_URL}/session?sessionId=${encodeURIComponent(activeSessionId)}`);
         if (!response.ok || cancelled) {
           return;
         }
 
         const state = await response.json();
+        if (state.video) {
+          setCurrentVideo(state.video);
+          setVideos((previous) => [state.video, ...previous.filter((video) => video.id !== state.video.id)]);
+        }
+        setAiAnalysis(state.aiAnalysis ?? null);
         setAnnotations(mergeById(state.annotations ?? [], pendingAnnotationsRef.current));
         setComments(mergeById(state.comments ?? [], pendingCommentsRef.current));
       } catch {
@@ -384,11 +458,18 @@ export default function App() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    const maybeTranscription = aiAnalysis?.transcription as VideoTranscription | undefined;
+    if (maybeTranscription && Array.isArray(maybeTranscription.segments)) {
+      setTranscription(maybeTranscription);
+    }
+  }, [aiAnalysis]);
 
   async function persistAnnotation(annotation: ReviewAnnotation) {
     try {
-      const response = await fetch(`${API_URL}/session/${encodeURIComponent(REVIEW_SESSION_ID)}/annotations`, {
+      const response = await fetch(`${API_URL}/session/${encodeURIComponent(activeSessionId)}/annotations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(annotation)
@@ -404,7 +485,7 @@ export default function App() {
 
   async function persistComment(comment: ReviewComment) {
     try {
-      const response = await fetch(`${API_URL}/session/${encodeURIComponent(REVIEW_SESSION_ID)}/comments`, {
+      const response = await fetch(`${API_URL}/session/${encodeURIComponent(activeSessionId)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(comment)
@@ -417,6 +498,34 @@ export default function App() {
       return;
     }
   }
+
+  async function persistAiAnalysis(transcriptionPayload: VideoTranscription) {
+    try {
+      const response = await fetch(`${API_URL}/videos/${encodeURIComponent(activeSessionId)}/analysis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          summary: "Demo transcription generated inside V-Secure Review Studio.",
+          transcription: transcriptionPayload,
+          chapters: [],
+          keywords: ["review", "video", "collaboration"]
+        })
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as { analysis: VideoAiAnalysis };
+      setAiAnalysis(payload.analysis);
+      setVideos((previous) =>
+        previous.map((video) => (video.id === activeSessionId ? { ...video, aiAvailable: true, aiStatus: "ready" } : video))
+      );
+    } catch {
+      return;
+    }
+  }
+
 
   function showToast(message: string) {
     setToast(message);
@@ -433,11 +542,46 @@ export default function App() {
     return false;
   }
 
+  function selectVideo(video: VideoSummary) {
+    pendingAnnotationsRef.current = [];
+    pendingCommentsRef.current = [];
+    setCurrentVideo(video);
+    setAnnotations([]);
+    setComments([]);
+    setTranscription(null);
+    setAiAnalysis(null);
+    setCurrentTime(0);
+    setDuration(video.duration ?? 0);
+    setSeekTarget(0);
+    window.setTimeout(() => setSeekTarget(null), 120);
+    showToast(labels.toasts.videoSelected);
+  }
+
+  async function handleUploadVideo(file: File) {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      showToast(labels.toasts.videoUploadRequired);
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const uploaded = await uploadVideo(file);
+      setVideos((previous) => [uploaded, ...previous.filter((video) => video.id !== uploaded.id)]);
+      selectVideo(uploaded);
+      showToast(labels.toasts.videoUploaded);
+    } catch {
+      showToast(labels.toasts.videoUploadFailed);
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
   function addAnnotation(annotation: ReviewAnnotation) {
     pendingAnnotationsRef.current = [annotation, ...pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id)];
     setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
     if (connected) {
-      socket.emit("add-annotation", { sessionId: REVIEW_SESSION_ID, annotation });
+      socket.emit("add-annotation", { sessionId: activeSessionId, annotation });
     }
     void persistAnnotation(annotation);
     showToast(labels.toasts.annotationAdded);
@@ -455,7 +599,7 @@ export default function App() {
     pendingCommentsRef.current = [comment, ...pendingCommentsRef.current.filter((item) => item.id !== comment.id)];
     setComments((previous) => (previous.some((item) => item.id === comment.id) ? previous : [comment, ...previous]));
     if (connected) {
-      socket.emit("add-comment", { sessionId: REVIEW_SESSION_ID, comment });
+      socket.emit("add-comment", { sessionId: activeSessionId, comment });
     }
     void persistComment(comment);
     showToast(labels.toasts.commentSynced);
@@ -463,7 +607,7 @@ export default function App() {
 
   function clearSession() {
     if (connected) {
-      socket.emit("clear-session", { sessionId: REVIEW_SESSION_ID });
+      socket.emit("clear-session", { sessionId: activeSessionId });
     } else {
       setAnnotations([]);
       setComments([]);
@@ -479,7 +623,23 @@ export default function App() {
 
   return (
     <AppShell
-      sidebar={<Sidebar userName={currentUser.name} userRole={currentUser.role} labels={labels.sidebar} />}
+      sidebar={
+        <Sidebar
+          userName={currentUser.name}
+          userRole={currentUser.role}
+          labels={labels.sidebar}
+          library={
+            <VideoLibrary
+              videos={videos}
+              currentVideoId={activeSessionId}
+              labels={labels.library}
+              uploading={uploadingVideo}
+              onUpload={handleUploadVideo}
+              onSelect={selectVideo}
+            />
+          }
+        />
+      }
       topbar={
         <TopBar
           connected={connected}
@@ -505,6 +665,8 @@ export default function App() {
               <ExportJsonButton
                 annotations={annotations}
                 comments={comments}
+                video={currentVideo}
+                aiAnalysis={aiAnalysis}
                 transcription={transcription}
                 label={labels.exportJson}
                 canExport={isAuthenticated}
@@ -534,6 +696,7 @@ export default function App() {
             <PremiumVideoPlayer
               annotations={annotations}
               currentTime={currentTime}
+              selectedSource={activeVideoSource}
               activeTool={activeTool}
               color={color}
               thickness={thickness}
@@ -564,6 +727,7 @@ export default function App() {
               onSeek={seek}
               onReady={(generated) => {
                 setTranscription(generated);
+                void persistAiAnalysis(generated);
                 showToast(labels.toasts.transcriptionReady);
               }}
             />
@@ -634,7 +798,7 @@ export default function App() {
                 <div>
                   <Activity size={18} />
                   <span>{labels.live.session}</span>
-                  <strong>{REVIEW_SESSION_ID}</strong>
+                  <strong>{activeSessionId}</strong>
                 </div>
                 <div>
                   <UsersRound size={18} />

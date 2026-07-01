@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Building2, Clapperboard, LockKeyhole, RadioTower } from "lucide-react";
 
 type SidebarProps = {
@@ -9,9 +10,10 @@ type SidebarProps = {
     liveSync: string;
     workspace: string;
   };
+  library?: ReactNode;
 };
 
-export function Sidebar({ userName, userRole, labels }: SidebarProps) {
+export function Sidebar({ userName, userRole, labels, library }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="brand-block">
@@ -42,6 +44,8 @@ export function Sidebar({ userName, userRole, labels }: SidebarProps) {
           {labels.workspace}
         </a>
       </nav>
+
+      {library}
 
       <div className="user-card">
         <span>{userName.slice(0, 1)}</span>

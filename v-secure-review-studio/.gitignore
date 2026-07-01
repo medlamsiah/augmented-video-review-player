@@ -5,6 +5,12 @@ dist
 npm-debug.log*
 *.tsbuildinfo
 server/storage/users.json
+server/storage/*.db
+server/storage/*.db-*
+server/uploads/videos/*
+server/uploads/thumbnails/*
+!server/uploads/videos/.gitkeep
+!server/uploads/thumbnails/.gitkeep
 secure-streaming/input/*
 secure-streaming/output/*
 secure-streaming/secrets/*

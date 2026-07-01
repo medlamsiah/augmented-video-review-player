@@ -16,6 +16,11 @@ type VideoSourceType = "mp4" | "hls";
 type PremiumVideoPlayerProps = {
   annotations: ReviewAnnotation[];
   currentTime: number;
+  selectedSource?: {
+    id: string;
+    url: string;
+    label: string;
+  };
   activeTool: AnnotationTool;
   color: string;
   thickness: number;
@@ -31,6 +36,7 @@ type PremiumVideoPlayerProps = {
 export function PremiumVideoPlayer({
   annotations,
   currentTime,
+  selectedSource,
   activeTool,
   color,
   thickness,
@@ -50,6 +56,18 @@ export function PremiumVideoPlayer({
   const [sourceType, setSourceType] = useState<VideoSourceType>("mp4");
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!selectedSource) {
+      return;
+    }
+
+    setSource(selectedSource.url);
+    setSourceLabel(selectedSource.label);
+    setSourceType("mp4");
+    setVideoError(null);
+    setIsPlaying(false);
+  }, [selectedSource?.id, selectedSource?.label, selectedSource?.url]);
 
   useEffect(() => {
     if (seekTarget !== null && videoRef.current && Math.abs(videoRef.current.currentTime - seekTarget) > 0.25) {

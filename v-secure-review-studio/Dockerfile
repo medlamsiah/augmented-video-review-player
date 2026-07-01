@@ -11,6 +11,7 @@ ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 ENV VITE_SOCKET_PATH=$VITE_SOCKET_PATH
 ENV VITE_HLS_URL=$VITE_HLS_URL
+ENV DATABASE_URL=file:../storage/vsecure.db
 
 COPY package.json package-lock.json ./
 COPY client/package.json client/package-lock.json ./client/
@@ -31,14 +32,16 @@ ENV PORT=4500
 ENV CLIENT_DIST_DIR=/app/client/dist
 ENV APP_BASE_PATH=/vsecure
 ENV SOCKET_PATH=/vsecure-socket/socket.io
+ENV DATABASE_URL=file:../storage/vsecure.db
 
 COPY --from=build /app/server/package.json ./server/package.json
 COPY --from=build /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/dist ./server/dist
+COPY --from=build /app/server/prisma ./server/prisma
 COPY --from=build /app/client/dist ./client/dist
 
-RUN mkdir -p /app/server/storage
+RUN mkdir -p /app/server/storage /app/server/uploads/videos /app/server/uploads/thumbnails
 WORKDIR /app/server
 
 EXPOSE 4500
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "start"]
