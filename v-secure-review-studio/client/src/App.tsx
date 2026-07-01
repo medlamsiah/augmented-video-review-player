@@ -127,6 +127,7 @@ const copy = {
       sessionReset: "Session remise a zero",
       jsonExported: "JSON exporte",
       transcriptionReady: "Transcription generee",
+      authRequired: "Connectez-vous pour signer cette action.",
       signedIn: "est connecte",
       signedOut: "Session fermee"
     }
@@ -224,6 +225,7 @@ const copy = {
       sessionReset: "Session reset",
       jsonExported: "JSON exported",
       transcriptionReady: "Transcription generated",
+      authRequired: "Sign in to sign this action.",
       signedIn: "is signed in",
       signedOut: "Signed out"
     }
@@ -257,10 +259,12 @@ export default function App() {
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [transcription, setTranscription] = useState<VideoTranscription | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("fr");
   const pendingAnnotationsRef = useRef<ReviewAnnotation[]>([]);
   const pendingCommentsRef = useRef<ReviewComment[]>([]);
   const labels = copy[language];
+  const isAuthenticated = Boolean(currentUser.email);
   const teamMembers = [currentUser, ...demoUsers.filter((user) => user.name !== currentUser.name)].slice(0, 4);
   const recentActivity = [
     ...annotations.map((annotation) => ({
@@ -419,6 +423,16 @@ export default function App() {
     window.setTimeout(() => setToast(null), 2200);
   }
 
+  function requireAuth() {
+    if (isAuthenticated) {
+      return true;
+    }
+
+    setAuthModalOpen(true);
+    showToast(labels.toasts.authRequired);
+    return false;
+  }
+
   function addAnnotation(annotation: ReviewAnnotation) {
     pendingAnnotationsRef.current = [annotation, ...pendingAnnotationsRef.current.filter((item) => item.id !== annotation.id)];
     setAnnotations((previous) => (previous.some((item) => item.id === annotation.id) ? previous : [annotation, ...previous]));
@@ -477,6 +491,8 @@ export default function App() {
             <Fragment>
               <AuthModal
                 user={currentUser}
+                open={authModalOpen}
+                onOpenChange={setAuthModalOpen}
                 onAuthenticated={(user) => {
                   setCurrentUser(user);
                   showToast(`${user.name} ${labels.toasts.signedIn}`);
@@ -486,7 +502,15 @@ export default function App() {
                   showToast(labels.toasts.signedOut);
                 }}
               />
-              <ExportJsonButton annotations={annotations} comments={comments} transcription={transcription} label={labels.exportJson} onExported={() => showToast(labels.toasts.jsonExported)} />
+              <ExportJsonButton
+                annotations={annotations}
+                comments={comments}
+                transcription={transcription}
+                label={labels.exportJson}
+                canExport={isAuthenticated}
+                onAuthRequired={requireAuth}
+                onExported={() => showToast(labels.toasts.jsonExported)}
+              />
             </Fragment>
           }
         />
@@ -514,6 +538,8 @@ export default function App() {
               color={color}
               thickness={thickness}
               author={currentUser.name}
+              canAnnotate={isAuthenticated}
+              onAuthRequired={requireAuth}
               onCreateAnnotation={addAnnotation}
               onTimeUpdate={setCurrentTime}
               onDurationChange={setDuration}
@@ -715,7 +741,16 @@ export default function App() {
           </motion.div>
         </section>
 
-        <CommentsPanel comments={comments} currentTime={currentTime} author={currentUser.name} labels={labels.comments} onAddComment={addComment} onSeek={seek} />
+        <CommentsPanel
+          comments={comments}
+          currentTime={currentTime}
+          author={currentUser.name}
+          labels={labels.comments}
+          canComment={isAuthenticated}
+          onAuthRequired={requireAuth}
+          onAddComment={addComment}
+          onSeek={seek}
+        />
       </main>
       <Toast message={toast} />
     </AppShell>

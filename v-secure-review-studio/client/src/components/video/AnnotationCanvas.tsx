@@ -9,6 +9,8 @@ type AnnotationCanvasProps = {
   color: string;
   thickness: number;
   author: string;
+  canDraw: boolean;
+  onAuthRequired: () => void;
   onDrawingStart?: () => void;
   onCreate: (annotation: ReviewAnnotation) => void;
 };
@@ -71,7 +73,7 @@ function drawAnnotation(ctx: CanvasRenderingContext2D, annotation: ReviewAnnotat
   ctx.restore();
 }
 
-export function AnnotationCanvas({ annotations, currentTime, activeTool, color, thickness, author, onDrawingStart, onCreate }: AnnotationCanvasProps) {
+export function AnnotationCanvas({ annotations, currentTime, activeTool, color, thickness, author, canDraw, onAuthRequired, onDrawingStart, onCreate }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draftRef = useRef<ReviewAnnotation | null>(null);
   const isDrawingRef = useRef(false);
@@ -122,6 +124,11 @@ export function AnnotationCanvas({ annotations, currentTime, activeTool, color, 
 
   function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
     event.preventDefault();
+    if (!canDraw) {
+      onAuthRequired();
+      return;
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId);
     onDrawingStart?.();
     const point = getPoint(event);

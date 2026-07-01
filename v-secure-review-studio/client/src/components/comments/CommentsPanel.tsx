@@ -19,11 +19,13 @@ type CommentsPanelProps = {
     emptyTitle: string;
     emptyBody: string;
   };
+  canComment: boolean;
+  onAuthRequired: () => void;
   onAddComment: (body: string) => void;
   onSeek: (time: number) => void;
 };
 
-export function CommentsPanel({ comments, currentTime, labels, onAddComment, onSeek }: CommentsPanelProps) {
+export function CommentsPanel({ comments, currentTime, labels, canComment, onAuthRequired, onAddComment, onSeek }: CommentsPanelProps) {
   const [body, setBody] = useState("");
 
   function submit(event: FormEvent) {
@@ -32,6 +34,12 @@ export function CommentsPanel({ comments, currentTime, labels, onAddComment, onS
     if (!trimmed) {
       return;
     }
+
+    if (!canComment) {
+      onAuthRequired();
+      return;
+    }
+
     onAddComment(trimmed);
     setBody("");
   }
@@ -50,6 +58,11 @@ export function CommentsPanel({ comments, currentTime, labels, onAddComment, onS
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
+          onFocus={() => {
+            if (!canComment) {
+              onAuthRequired();
+            }
+          }}
           placeholder={labels.placeholder}
           rows={4}
         />

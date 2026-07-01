@@ -20,6 +20,8 @@ type PremiumVideoPlayerProps = {
   color: string;
   thickness: number;
   author: string;
+  canAnnotate: boolean;
+  onAuthRequired: () => void;
   onCreateAnnotation: (annotation: ReviewAnnotation) => void;
   onTimeUpdate: (time: number) => void;
   onDurationChange: (duration: number) => void;
@@ -33,6 +35,8 @@ export function PremiumVideoPlayer({
   color,
   thickness,
   author,
+  canAnnotate,
+  onAuthRequired,
   onCreateAnnotation,
   onTimeUpdate,
   onDurationChange,
@@ -216,6 +220,8 @@ export function PremiumVideoPlayer({
           color={color}
           thickness={thickness}
           author={author}
+          canDraw={canAnnotate}
+          onAuthRequired={onAuthRequired}
           onDrawingStart={pauseForAnnotation}
           onCreate={onCreateAnnotation}
         />

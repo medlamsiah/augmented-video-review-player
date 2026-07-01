@@ -16,12 +16,14 @@ type AuthMode = "login" | "signup";
 
 type AuthModalProps = {
   user: AuthUser;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onAuthenticated: (user: AuthUser) => void;
   onLogout: () => void;
 };
 
-export function AuthModal({ user, onAuthenticated, onLogout }: AuthModalProps) {
-  const [open, setOpen] = useState(false);
+export function AuthModal({ user, open, onOpenChange, onAuthenticated, onLogout }: AuthModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>("signup");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -29,6 +31,12 @@ export function AuthModal({ user, onAuthenticated, onLogout }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const modalOpen = open ?? internalOpen;
+
+  function setModalOpen(nextOpen: boolean) {
+    setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -48,7 +56,7 @@ export function AuthModal({ user, onAuthenticated, onLogout }: AuthModalProps) {
 
       saveAuthSession(response);
       onAuthenticated(response.user);
-      setOpen(false);
+      setModalOpen(false);
       setPassword("");
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "auth_failed";
@@ -61,17 +69,17 @@ export function AuthModal({ user, onAuthenticated, onLogout }: AuthModalProps) {
   async function disconnect() {
     await logout();
     onLogout();
-    setOpen(false);
+    setModalOpen(false);
   }
 
   return (
     <>
-      <Button variant={user.email ? "secondary" : "primary"} icon={user.email ? <Mail size={16} /> : <UserPlus size={16} />} onClick={() => setOpen(true)}>
+      <Button variant={user.email ? "secondary" : "primary"} icon={user.email ? <Mail size={16} /> : <UserPlus size={16} />} onClick={() => setModalOpen(true)}>
         {user.email ? user.name : "S'inscrire"}
       </Button>
 
       <AnimatePresence>
-        {open ? (
+        {modalOpen ? (
           <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="auth-modal" initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.98 }}>
               <div className="auth-visual">
@@ -89,7 +97,7 @@ export function AuthModal({ user, onAuthenticated, onLogout }: AuthModalProps) {
                     <span>V-Secure Access</span>
                     <strong>{mode === "signup" ? "Creer un compte" : "Connexion"}</strong>
                   </div>
-                  <Button variant="ghost" icon={<X size={16} />} onClick={() => setOpen(false)} type="button" aria-label="Fermer" />
+                  <Button variant="ghost" icon={<X size={16} />} onClick={() => setModalOpen(false)} type="button" aria-label="Fermer" />
                 </div>
 
                 <div className="auth-tabs">
