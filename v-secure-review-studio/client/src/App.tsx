@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Clock3, RadioTower, ShieldCheck, UsersRound } from "lucide-react";
+import { Activity, Clock3, KeyRound, LockKeyhole, RadioTower, Server, ShieldCheck, UsersRound } from "lucide-react";
 import type { AnnotationTool, ReviewAnnotation } from "./types/annotation";
 import type { ReviewComment } from "./types/comment";
 import type { VideoTranscription } from "./types/transcription";
@@ -27,6 +27,9 @@ import { Toast } from "./components/ui/Toast";
 
 const REVIEW_SESSION_ID = "default-review-session";
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/vsecure-api" : "http://localhost:4500");
+const SECURE_HLS_URL = import.meta.env.VITE_HLS_URL || (import.meta.env.PROD ? "/vsecure-hls/master.m3u8" : "http://localhost:8080/hls/master.m3u8");
+const SECURE_KEY_URL = import.meta.env.PROD ? "/vsecure-key/demo.key?token=demo-secure-token" : "http://localhost:8080/keys/demo.key?token=demo-secure-token";
+const SECURE_KEY_DENIED_URL = import.meta.env.PROD ? "/vsecure-key/demo.key" : "http://localhost:8080/keys/demo.key";
 type Language = "fr" | "en";
 
 const copy = {
@@ -80,6 +83,23 @@ const copy = {
       synced: "synchronise",
       annotations: "annotations",
       comments: "commentaires"
+    },
+    secure: {
+      eyebrow: "Video securisee",
+      title: "Streaming HLS Zero-Trust",
+      body: "Le flux de demonstration est segmente en HLS, chiffre AES-128 et servi avec une cle temporaire protegee par token.",
+      hls: "Playlist HLS chiffree",
+      key: "Cle AES avec token",
+      denied: "Cle refusee sans token",
+      proxy: "Proxy Nginx separe",
+      active: "Actif",
+      protected: "Protege",
+      blocked: "Bloque",
+      route: "Route",
+      architecture: "Architecture",
+      stepOne: "React charge la playlist HLS depuis /vsecure-hls/.",
+      stepTwo: "Le player demande la cle via /vsecure-key/ avec un token temporaire.",
+      stepThree: "Nginx garde le projet existant sur / et isole V-Secure sur /vsecure/."
     },
     exportJson: "Exporter JSON",
     toasts: {
@@ -143,6 +163,23 @@ const copy = {
       synced: "synced",
       annotations: "annotations",
       comments: "comments"
+    },
+    secure: {
+      eyebrow: "Secure video",
+      title: "Zero-Trust HLS streaming",
+      body: "The demo stream is segmented as HLS, encrypted with AES-128 and served through a temporary token-protected key.",
+      hls: "Encrypted HLS playlist",
+      key: "AES key with token",
+      denied: "Key denied without token",
+      proxy: "Separate Nginx proxy",
+      active: "Active",
+      protected: "Protected",
+      blocked: "Blocked",
+      route: "Route",
+      architecture: "Architecture",
+      stepOne: "React loads the HLS playlist from /vsecure-hls/.",
+      stepTwo: "The player requests the key through /vsecure-key/ with a temporary token.",
+      stepThree: "Nginx keeps the existing project on / and isolates V-Secure on /vsecure/."
     },
     exportJson: "Export JSON",
     toasts: {
@@ -469,6 +506,55 @@ export default function App() {
                 showToast(labels.toasts.transcriptionReady);
               }}
             />
+            <Card className="secure-video-card" id="secure" tabIndex={-1}>
+              <div className="secure-video-hero">
+                <div className="section-heading">
+                  <span>{labels.secure.eyebrow}</span>
+                  <strong>{labels.secure.title}</strong>
+                </div>
+                <p>{labels.secure.body}</p>
+              </div>
+
+              <div className="secure-metrics">
+                <a href={SECURE_HLS_URL} target="_blank" rel="noreferrer">
+                  <LockKeyhole size={18} />
+                  <span>{labels.secure.hls}</span>
+                  <strong>{labels.secure.active}</strong>
+                </a>
+                <a href={SECURE_KEY_URL} target="_blank" rel="noreferrer">
+                  <KeyRound size={18} />
+                  <span>{labels.secure.key}</span>
+                  <strong>{labels.secure.protected}</strong>
+                </a>
+                <a href={SECURE_KEY_DENIED_URL} target="_blank" rel="noreferrer">
+                  <ShieldCheck size={18} />
+                  <span>{labels.secure.denied}</span>
+                  <strong>401</strong>
+                </a>
+                <div>
+                  <Server size={18} />
+                  <span>{labels.secure.proxy}</span>
+                  <strong>/vsecure/</strong>
+                </div>
+              </div>
+
+              <div className="secure-route-grid">
+                <div className="secure-route-panel">
+                  <strong>{labels.secure.route}</strong>
+                  <code>{SECURE_HLS_URL}</code>
+                  <code>{SECURE_KEY_URL}</code>
+                  <code>/vsecure-socket/socket.io</code>
+                </div>
+                <div className="secure-route-panel">
+                  <strong>{labels.secure.architecture}</strong>
+                  <ol>
+                    <li>{labels.secure.stepOne}</li>
+                    <li>{labels.secure.stepTwo}</li>
+                    <li>{labels.secure.stepThree}</li>
+                  </ol>
+                </div>
+              </div>
+            </Card>
             <Card className="team-workspace-card" id="company" tabIndex={-1}>
               <div className="team-workspace-hero">
                 <div className="section-heading">
