@@ -30,6 +30,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/vsecur
 const SECURE_HLS_URL = import.meta.env.VITE_HLS_URL || (import.meta.env.PROD ? "/vsecure-hls/master.m3u8" : "http://localhost:8080/hls/master.m3u8");
 const SECURE_KEY_URL = import.meta.env.PROD ? "/vsecure-key/demo.key?token=demo-secure-token" : "http://localhost:8080/keys/demo.key?token=demo-secure-token";
 const SECURE_KEY_DENIED_URL = import.meta.env.PROD ? "/vsecure-key/demo.key" : "http://localhost:8080/keys/demo.key";
+const SOCKET_ROUTE = import.meta.env.PROD ? "/vsecure-socket/socket.io" : "/socket.io";
 type Language = "fr" | "en";
 
 const copy = {
@@ -100,6 +101,23 @@ const copy = {
       stepOne: "React charge la playlist HLS depuis /vsecure-hls/.",
       stepTwo: "Le player demande la cle via /vsecure-key/ avec un token temporaire.",
       stepThree: "Nginx garde le projet existant sur / et isole V-Secure sur /vsecure/."
+    },
+    live: {
+      eyebrow: "Synchro live",
+      title: "Collaboration temps reel",
+      body: "Les annotations et commentaires sont envoyes par Socket.IO, stockes en memoire cote serveur et redistribues a tous les onglets connectes.",
+      socket: "Socket.IO",
+      session: "Session",
+      reviewers: "Utilisateurs",
+      latency: "Diffusion",
+      connected: "Connecte",
+      disconnected: "Deconnecte",
+      instant: "Instantanee",
+      events: "Evenements synchronises",
+      route: "Route WebSocket",
+      eventOne: "join-session charge l'etat existant pour les nouveaux utilisateurs.",
+      eventTwo: "add-annotation partage les dessins video en direct.",
+      eventThree: "add-comment partage les notes horodatees en direct."
     },
     exportJson: "Exporter JSON",
     toasts: {
@@ -180,6 +198,23 @@ const copy = {
       stepOne: "React loads the HLS playlist from /vsecure-hls/.",
       stepTwo: "The player requests the key through /vsecure-key/ with a temporary token.",
       stepThree: "Nginx keeps the existing project on / and isolates V-Secure on /vsecure/."
+    },
+    live: {
+      eyebrow: "Live sync",
+      title: "Real-time collaboration",
+      body: "Annotations and comments are sent through Socket.IO, stored in server memory and redistributed to every connected tab.",
+      socket: "Socket.IO",
+      session: "Session",
+      reviewers: "Users",
+      latency: "Broadcast",
+      connected: "Connected",
+      disconnected: "Disconnected",
+      instant: "Instant",
+      events: "Synchronized events",
+      route: "WebSocket route",
+      eventOne: "join-session loads the existing state for new users.",
+      eventTwo: "add-annotation shares video drawings live.",
+      eventThree: "add-comment shares timestamped notes live."
     },
     exportJson: "Export JSON",
     toasts: {
@@ -551,6 +586,54 @@ export default function App() {
                     <li>{labels.secure.stepOne}</li>
                     <li>{labels.secure.stepTwo}</li>
                     <li>{labels.secure.stepThree}</li>
+                  </ol>
+                </div>
+              </div>
+            </Card>
+            <Card className="live-sync-card" id="live" tabIndex={-1}>
+              <div className="secure-video-hero">
+                <div className="section-heading">
+                  <span>{labels.live.eyebrow}</span>
+                  <strong>{labels.live.title}</strong>
+                </div>
+                <p>{labels.live.body}</p>
+              </div>
+
+              <div className="live-sync-metrics">
+                <div>
+                  <RadioTower size={18} />
+                  <span>{labels.live.socket}</span>
+                  <strong>{connected ? labels.live.connected : labels.live.disconnected}</strong>
+                </div>
+                <div>
+                  <Activity size={18} />
+                  <span>{labels.live.session}</span>
+                  <strong>{REVIEW_SESSION_ID}</strong>
+                </div>
+                <div>
+                  <UsersRound size={18} />
+                  <span>{labels.live.reviewers}</span>
+                  <strong>{usersCount}</strong>
+                </div>
+                <div>
+                  <Clock3 size={18} />
+                  <span>{labels.live.latency}</span>
+                  <strong>{labels.live.instant}</strong>
+                </div>
+              </div>
+
+              <div className="live-sync-panels">
+                <div className="secure-route-panel">
+                  <strong>{labels.live.route}</strong>
+                  <code>{SOCKET_ROUTE}</code>
+                  <code>{socket.id ? `socket:${socket.id.slice(0, 12)}` : "socket:pending"}</code>
+                </div>
+                <div className="secure-route-panel">
+                  <strong>{labels.live.events}</strong>
+                  <ol>
+                    <li>{labels.live.eventOne}</li>
+                    <li>{labels.live.eventTwo}</li>
+                    <li>{labels.live.eventThree}</li>
                   </ol>
                 </div>
               </div>
